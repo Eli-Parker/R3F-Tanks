@@ -1,10 +1,11 @@
 /* eslint-disable react/no-unknown-property */
-import { OrbitControls } from '@react-three/drei';
+import { KeyboardControls, OrbitControls } from '@react-three/drei';
 import { Canvas } from '@react-three/fiber';
 import { folder, Leva, useControls } from 'leva';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import * as THREE from 'three';
+import Tank from './Tank';
 
 /**
  * World function represents the game world and manages the entities within it.
@@ -15,6 +16,14 @@ function World ()
 {
     const [debug] = useState(window.location.hash === "#debug");
     
+
+    const map = useMemo(()=>[
+        { name: Controls.forward, keys: ['ArrowUp', 'KeyW'] },
+        { name: Controls.back, keys: ['ArrowDown', 'KeyS'] },
+        { name: Controls.left, keys: ['ArrowLeft', 'KeyA'] },
+        { name: Controls.right, keys: ['ArrowRight', 'KeyD'] },
+        { name: Controls.fire, keys: ['Space'] },
+      ], [])
 
     const { wallPosX, wallPosY, wallPosZ } = useControls(
     "Main World Ctrls",
@@ -35,6 +44,7 @@ function World ()
     return ( <>
         {/* Hide debug controls if we're not in debug mode */}
         {!debug && <Leva hidden />}
+        <KeyboardControls map={map} >
         <Canvas
             className="r3f"
             shadows
@@ -56,7 +66,11 @@ function World ()
                 castShadow
                 intensity={2}
                 position={[0, 5, -1]}
-            />
+                shadow-mapSize={[1024, 1024]}
+            >
+                <orthographicCamera attach="shadow-camera" args={[-15, 15, 10, -10]} />
+            </directionalLight>
+
             {/* Floor plane */}
             <mesh receiveShadow rotation={ [-Math.PI/2, 0, 0] }>
                 <planeGeometry args={[100, 100]} />
@@ -64,15 +78,13 @@ function World ()
             </mesh>
 
             {/* Cube */}
-            <Walls wide={28} tall={20} position={ [wallPosX, wallPosY, wallPosZ] }/>
+            <Walls castShadow wide={28} tall={20} position={ [wallPosX, wallPosY, wallPosZ] }/>
 
-            {/* Cube */}
-            <mesh position={[0, 1, 0]} castShadow>
-                <boxGeometry args={[1, 1, 1]} />
-                <meshStandardMaterial color='blue' />
-            </mesh>
+            {/* Tank */}
+            <Tank position={[0,0.5,0]}/>
 
         </Canvas>
+        </KeyboardControls>
     </>);
 }
 
@@ -129,7 +141,7 @@ const Walls = ({wide, tall, ...props }) => {
 
     return (
     <group {...props} >
-        <instancedMesh ref={instancedMeshRef} args={[null, null, (2 * wide + 2 * tall)]}>
+        <instancedMesh castShadow ref={instancedMeshRef} args={[null, null, (2 * wide + 2 * tall)]}>
             <boxGeometry />
             <meshPhongMaterial />
         </instancedMesh>
@@ -160,3 +172,12 @@ const OrbitControlsSnippet = () => {
       />
     );
   };
+
+
+const Controls = {
+    forward: 'forward',
+    back: 'back',
+    left: 'left',
+    right: 'right',
+    fire: 'fire',
+};
